@@ -24,7 +24,7 @@ func UpstartScript(dir, app string, out io.Writer) error {
 var _upstart = `
 # djaproxy for {{.App}}
 #
-description	"django_{{.App}} webproxy"
+description	"django_{{.App}}"
 
 start on runlevel [2345]
 stop on runlevel [!2345]
@@ -34,10 +34,12 @@ expect fork
 
 script 
   cd '{{.Dir}}'
-  exec djaproxy web -app '{{.App}}' -dir '{{.Dir}}' &
+  . bin/activate
+  bin/circusd --daemon circus.ini &
+  djaproxy web -app '{{.App}}' -dir '{{.Dir}}' &
 end script
 
-emits django_{{.App}}_proxy_starting
+emits django_{{.App}}_starting
 `
 
 func UpstartScriptCommand() *commander.Command {

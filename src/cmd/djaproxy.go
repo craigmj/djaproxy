@@ -10,6 +10,7 @@ import (
 
 	"github.com/craigmj/commander"
 
+	"djaproxy/circus"
 	"djaproxy/django"
 	"djaproxy/upstart"
 )
@@ -17,7 +18,9 @@ import (
 func main() {
 	if err := commander.Execute(nil,
 		WebCommand,
-		upstart.UpstartScriptCommand); nil != err {
+		upstart.UpstartScriptCommand,
+		circus.InstallCommand,
+	); nil != err {
 		log.Fatal(err)
 	}
 }
