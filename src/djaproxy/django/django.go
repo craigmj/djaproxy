@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -59,7 +60,7 @@ func HttpMapStatics(m map[string]string) {
 		if prefix[l-1] == '/' {
 			prefix = prefix[0 : l-1]
 		}
-		// log.Printf("Handling %s (%s) to %s", u, prefix, root)
+		log.Printf("Handling %s (%s) to %s", u, prefix, root)
 		http.Handle(u, http.StripPrefix(prefix, http.FileServer(http.Dir(root))))
 	}
 }

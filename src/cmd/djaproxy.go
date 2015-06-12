@@ -20,6 +20,7 @@ func main() {
 	if err := commander.Execute(nil,
 		WebCommand,
 		upstart.UpstartCommand,
+		upstart.SysVCommand,
 		circus.InstallCommand,
 	); nil != err {
 		log.Fatal(err)
