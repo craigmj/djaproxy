@@ -44,6 +44,13 @@ func Install(backend, destDir string) error {
 		"circus",
 		"circus-web",
 		"chaussette",
+		"gevent",
+		"django",
+		"MySQL-python",
+		"MySQLdb",
+		"django-epiceditor",
+		"django-grappelli",
+		"django-request",
 		DefaultBackend)
 	cmd.Dir = destDir
 	if err := runCmd(cmd); nil != err {
@@ -114,11 +121,11 @@ pubsub_endpoint = tcp://127.0.0.1:5556
 stats_endpoint = tcp://127.0.0.1:5557
 
 [watcher:web]
-cmd = chaussette --fd $(circus.sockets.web) --backend {{.Backend}} server.app
+cmd = bin/chaussette --fd $(circus.sockets.web) --backend {{.Backend}} server.app
 use_sockets = True
 numprocesses = 5
 
 [socket:web]
 host = 0.0.0.0
-post = 8000
+port = 8000
 `
