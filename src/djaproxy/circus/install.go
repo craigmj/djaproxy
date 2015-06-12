@@ -32,7 +32,8 @@ func Install(backend, destDir string) error {
 		"libzmq-dev",
 		"libevent-dev",
 		"python-dev",
-		"python-virtualenv")
+		"python-virtualenv",
+		"libmysqlclient-dev")
 	if err := runCmd(cmd); nil != err {
 		return err
 	}
@@ -46,8 +47,7 @@ func Install(backend, destDir string) error {
 		"chaussette",
 		"gevent",
 		"django",
-		"MySQL-python",
-		"MySQLdb",
+		"mysql-python",
 		"django-epiceditor",
 		"django-grappelli",
 		"django-request",
