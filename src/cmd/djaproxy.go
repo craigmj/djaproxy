@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -18,7 +19,7 @@ import (
 func main() {
 	if err := commander.Execute(nil,
 		WebCommand,
-		upstart.UpstartScriptCommand,
+		upstart.UpstartCommand,
 		circus.InstallCommand,
 	); nil != err {
 		log.Fatal(err)
@@ -60,6 +61,7 @@ func WebCommand() *commander.Command {
 
 			destUrl, _ := url.Parse(*dest)
 			http.Handle("/", httputil.NewSingleHostReverseProxy(destUrl))
+			fmt.Println("Starting server on", *port, ", proxy on", *dest)
 			return http.ListenAndServe(*port, nil)
 		})
 }

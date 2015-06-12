@@ -1,7 +1,9 @@
 package django
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -14,7 +16,7 @@ import (
 // of urls to directories
 func UrlMap(dir string, app string) (map[string]string, error) {
 	code := template.Must(template.New("").Parse(test_py))
-	py := exec.Command("python")
+	py := exec.Command("bin/python")
 	py.Dir = dir
 	in, err := py.StdinPipe()
 	if nil != err {
@@ -24,17 +26,22 @@ func UrlMap(dir string, app string) (map[string]string, error) {
 	if nil != err {
 		return nil, err
 	}
-	js := json.NewDecoder(out)
 	if err = py.Start(); nil != err {
-		return nil, err
+		return nil, fmt.Errorf("Error running UrlMap: %s", err.Error())
 	}
 	go func() {
-		err = code.Execute(in, map[string]string{"App": app})
+		code.Execute(in, map[string]string{"App": app})
 		in.Close()
 	}()
+
+	var buf bytes.Buffer
+	io.Copy(&buf, out)
+	io.Copy(os.Stdout, bytes.NewReader(buf.Bytes()))
+
+	js := json.NewDecoder(bytes.NewReader(buf.Bytes()))
 	m := make(map[string]string, 0)
 	if err = js.Decode(&m); nil != err {
-		return nil, err
+		return nil, fmt.Errorf("Error on JSON Decode: %s", err.Error())
 	}
 	for u, p := range m {
 		if !filepath.IsAbs(p) {
@@ -60,14 +67,19 @@ func HttpMapStatics(m map[string]string) {
 // CollectStatics runs the python 'collectstatic' manage.py command
 // in the directory given
 func CollectStatic(dir string) error {
-	cmd := exec.Command("python", "manage.py", "collectstatic", "--noinput")
+	cmd := exec.Command("bin/python", "manage.py", "collectstatic", "--noinput")
 	cmd.Dir = dir
 	out, _ := cmd.StdoutPipe()
 	go io.Copy(os.Stdout, out)
 	errpipe, _ := cmd.StderrPipe()
 	go io.Copy(os.Stderr, errpipe)
 
-	return cmd.Run()
+	err := cmd.Run()
+	if nil != err {
+		fmt.Println("ERROR: on collectstatic : %s", err.Error())
+		return err
+	}
+	return nil
 }
 
 const test_py = `
