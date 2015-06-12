@@ -6,6 +6,7 @@ fi
 export GOPATH=`pwd`
 for l in \
 	"github.com/craigmj/commander" \
+	"github.com/craigmj/aptlastupdate" \
 	; do
 	if [ ! -d src/$l ]; then
 		go get $l

@@ -1,6 +1,7 @@
 package circus
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -9,7 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 
+	"github.com/craigmj/aptlastupdate"
 	"github.com/craigmj/commander"
 )
 
@@ -17,13 +20,22 @@ var DefaultBackend = "waitress"
 
 // Install installs circus and chausette.
 // Install needs to be run as root.
-func Install(backend, destDir string) error {
+func Install(destDir, app, backend string) error {
+	var err error
 	if "" == backend {
 		backend = DefaultBackend
 	}
-	err := runCmd(exec.Command("apt-get", "update"))
-	if nil != err {
-		return err
+	if "" == destDir {
+		destDir, err = os.Getwd()
+		if nil != err {
+			return err
+		}
+	}
+	if updated, _ := aptlastupdate.Within(time.Hour * 6); !updated {
+		err = runCmd(exec.Command("apt-get", "update"))
+		if nil != err {
+			return err
+		}
 	}
 	cmd := exec.Command("apt-get",
 		"install",
@@ -63,7 +75,7 @@ func Install(backend, destDir string) error {
 		return err
 	}
 	defer circusIni.Close()
-	if err = circusFile(circusIni, backend); nil != err {
+	if err = circusFile(circusIni, destDir, app, backend); nil != err {
 		return err
 	}
 	return nil
@@ -73,14 +85,18 @@ func Install(backend, destDir string) error {
 // install.
 func InstallCommand() *commander.Command {
 	fs := flag.NewFlagSet("install", flag.ExitOnError)
+	app := fs.String("app", "", "Name of the wsgi app we're using")
 	backend := fs.String("backend", "waitress", "Backend to use for chaussette")
-	destDir := fs.String("dest", "/opt/circus", "Install location")
+	destDir := fs.String("dest", "", "Install location")
 	return commander.NewCommand(
 		"install",
 		"Installs circus, chaussette and all other requirements",
 		fs,
 		func(args []string) error {
-			return Install(*backend, *destDir)
+			if "" == *app {
+				return errors.New("You must provide an app name (-app)")
+			}
+			return Install(*destDir, *app, *backend)
 		})
 }
 
@@ -103,13 +119,15 @@ func runCmd(cmd *exec.Cmd) error {
 }
 
 // circusFile writes the circus file to the given io.Writer
-func circusFile(out io.Writer, backend string) error {
+func circusFile(out io.Writer, dir, app, backend string) error {
 	if "" == backend {
 		backend = DefaultBackend
 	}
 	t := template.Must(template.New("").Parse(circusIniTemplate))
 	return t.Execute(out, map[string]interface{}{
+		"App":     app,
 		"Backend": backend,
+		"Dir":     dir,
 	})
 
 }
@@ -121,9 +139,11 @@ pubsub_endpoint = tcp://127.0.0.1:5556
 stats_endpoint = tcp://127.0.0.1:5557
 
 [watcher:web]
-cmd = bin/chaussette --fd $(circus.sockets.web) --backend {{.Backend}} server.app
+cmd = {{.Dir}}/bin/chaussette --fd $(circus.sockets.web) --backend {{.Backend}} {{.App}}
 use_sockets = True
 numprocesses = 5
+copy_env = True
+virtualenv = {{.Dir}}
 
 [socket:web]
 host = 0.0.0.0
