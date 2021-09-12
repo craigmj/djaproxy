@@ -1,6 +1,8 @@
 # djaproxy
 
-Very simple proxy server written in Go for serving django applications.
+Very simple proxy server written in Go for installing and service django applications,
+so that you don't have to fight with python installations, virtualenvironments, and configuring
+webservers to handle your django application and it's media and static directories.
 
 Installing django on a webserver can be a royal PiTA, especially if you have other 
 applications and services running on the server. djaproxy aims to make it as simple
