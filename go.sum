@@ -1,0 +1,6 @@
+github.com/craigmj/aptlastupdate v0.0.0-20151126172920-728f52f705dd h1:Q0mpgZ1jq/HzhsnZB+xkNWAH6+Qrzc4/bYbeCKjtbww=
+github.com/craigmj/aptlastupdate v0.0.0-20151126172920-728f52f705dd/go.mod h1:+lavnfIEqtKJoYnBqtddVdgtj2Hbnjw35Jti0mRqL48=
+github.com/craigmj/commander v0.0.0-20190614004124-4888e7f57cc4 h1:YgJCWIMWk4Iry3SM0qvAyx7Xsp3BSFSAcRMf9B0TnlU=
+github.com/craigmj/commander v0.0.0-20190614004124-4888e7f57cc4/go.mod h1:oQ3mDG5IHofvAS6+Y2OjMYRBJBinCE8tyAgQuR+U60k=
+github.com/peterbourgon/unixtransport v0.0.1 h1:M3bP6so2XBtW+jOSI611/Lt/XuCT77s58NC36ASXYtE=
+github.com/peterbourgon/unixtransport v0.0.1/go.mod h1:287HHyPa+1Uv2IEIXsf77UIJHQHAbcb8rFXroYVpjpI=

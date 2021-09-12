@@ -8,41 +8,50 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"text/template"
+
+	`djaproxy/python`
 )
 
 // UrlMap uses python and the settings.py to work out the mappings
 // of urls to directories
-func UrlMap(dir string, app string) (map[string]string, error) {
+func UrlMap(python *python.Python, dir string, app string) (map[string]string, error) {
+	var err error
 	code := template.Must(template.New("").Parse(test_py))
-	py := exec.Command("bin/python")
+	var pyCode bytes.Buffer
+	if err := code.Execute(&pyCode, map[string]string{"App": app}); nil!=err {
+		return nil, fmt.Errorf(`Failed parsing python template: %w`, err)
+	}
+
+	py := python.Command(nil)
 	py.Dir = dir
-	in, err := py.StdinPipe()
-	if nil != err {
+	log.Printf(`Running urlmap command in %s`, py.Dir)
+	for _, e := range py.Env {
+		log.Printf("ENV: %s", e)
+	}
+	py.Stdin = nil
+	pyin, err := py.StdinPipe()
+	if nil!=err {
 		return nil, err
 	}
-	out, err := py.StdoutPipe()
-	if nil != err {
-		return nil, err
-	}
+	go func() {
+		io.Copy(pyin, bytes.NewReader(pyCode.Bytes()))
+		pyin.Close()
+	}()
+	py.Stdout = nil
+	pyout, err := py.StdoutPipe()
 	if err = py.Start(); nil != err {
 		return nil, fmt.Errorf("Error running UrlMap: %s", err.Error())
 	}
-	go func() {
-		code.Execute(in, map[string]string{"App": app})
-		in.Close()
-	}()
-
+	// py.Stdin = bytes.NewReader(pyCode.Bytes())
 	var buf bytes.Buffer
-	io.Copy(&buf, out)
-	io.Copy(os.Stdout, bytes.NewReader(buf.Bytes()))
+	io.Copy(io.MultiWriter(&buf, os.Stdout), pyout)
 
 	js := json.NewDecoder(bytes.NewReader(buf.Bytes()))
 	m := make(map[string]string, 0)
 	if err = js.Decode(&m); nil != err {
-		return nil, fmt.Errorf("Error on JSON Decode: %s", err.Error())
+		return nil, fmt.Errorf("Error on JSON Decode executing '%s' : %s", pyCode.String(), err.Error())
 	}
 	for u, p := range m {
 		if !filepath.IsAbs(p) {
@@ -67,13 +76,10 @@ func HttpMapStatics(m map[string]string) {
 
 // CollectStatics runs the python 'collectstatic' manage.py command
 // in the directory given
-func CollectStatic(dir string) error {
-	cmd := exec.Command("bin/python", "manage.py", "collectstatic", "--noinput")
+func CollectStatic(python *python.Python, dir string) error {
+	cmd := python.Command(nil, "manage.py", "collectstatic", "--noinput")
 	cmd.Dir = dir
-	out, _ := cmd.StdoutPipe()
-	go io.Copy(os.Stdout, out)
-	errpipe, _ := cmd.StderrPipe()
-	go io.Copy(os.Stderr, errpipe)
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 
 	err := cmd.Run()
 	if nil != err {
@@ -91,5 +97,5 @@ if hasattr(settings, 'STATIC_ROOT') and hasattr(settings,'STATIC_URL'):
 	d[settings.STATIC_URL] = settings.STATIC_ROOT
 if hasattr(settings, 'MEDIA_ROOT') and hasattr(settings,'MEDIA_URL'):
 	d[settings.MEDIA_URL] = settings.MEDIA_ROOT
-print json.dumps(d)
+print (json.dumps(d))
 `
