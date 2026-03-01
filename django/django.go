@@ -83,7 +83,7 @@ func CollectStatic(python *python.Python, dir string) error {
 
 	err := cmd.Run()
 	if nil != err {
-		fmt.Println("ERROR: on collectstatic : %s", err.Error())
+		fmt.Printf("ERROR: on collectstatic : %s\n", err.Error())
 		return err
 	}
 	return nil

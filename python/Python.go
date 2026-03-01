@@ -20,7 +20,7 @@ type Python struct {
 func New(dir, ver string) (*Python, error) {
 	var err error
 	if ``==ver {
-		ver = `3.9.7`
+		ver = PYTHON_VERSION
 	}
 	dir, err = filepath.Abs(dir)
 	if nil!=err {
@@ -99,12 +99,13 @@ func (p *Python) Command(env []string, cmd ...string) *exec.Cmd {
 	py := exec.Command(filepath.Join(p.Dir, `bin`,`python3`), cmd...)
 	py.Env = append(p.Env(), env...)
 	py.Stdout, py.Stderr =  os.Stdout, os.Stderr
+	py.Stdin = os.Stdin
 	return py
 }
 
 var _pythonInstallScript = template.Must(template.New(``).Parse(`#!/bin/bash
-set -xe
 if [[ ! -f {{.Dir}}/bin/python3 ]]; then
+	set -xe
 	mkdir -p {{.ParentDir}}/python-src
 	cd {{.ParentDir}}/python-src
 	if [[ ! -f Python-{{.Version}}.tgz ]]; then
@@ -113,7 +114,7 @@ if [[ ! -f {{.Dir}}/bin/python3 ]]; then
 	fi
 	cd Python-{{.Version}}
 
-	./configure --prefix {{.Dir}}
-	make && make install
+	./configure --enable-loadable-sqlite-extensions --prefix {{.Dir}}
+	make -j $(nproc) && make install
 fi
 `))

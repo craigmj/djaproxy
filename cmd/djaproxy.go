@@ -68,6 +68,10 @@ func WebCommand() *commander.Command {
 			if nil != err {
 				return err
 			}
+			if 0==len(m) {
+				log.Println("No static or media file mappings found")
+				return fmt.Errorf("No STATIC_ROOT or MEDIA_ROOT mappings found in settings.py")
+			}
 			for k, v := range m {
 				log.Println(k, "=", v)
 			}
