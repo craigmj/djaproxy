@@ -40,6 +40,7 @@ func WebCommand() *commander.Command {
 	bind := fs.String("bind", ":8001", "Bind address and port for webserver")
 	// dest := fs.String("dest", "http://localhost:8000", "Destination for reverse proxy - where django is running")
 	app := fs.String("app", "", "Name of the web app")
+	daphne := fs.Bool("daphne", false, "Use the daphne server (rather than uvicorn)")
 	wd, err := os.Getwd()
 	if nil!=err {
 		panic(err)
@@ -54,7 +55,7 @@ func WebCommand() *commander.Command {
 		fs,
 		func(args []string) error {
 			if "" == *app {
-				return errors.New("You need to specify the name fo the web app (-app)")
+				return errors.New("You need to specify the name for the web app (-app)")
 			}
 			if "" == *dir {
 				return errors.New("You need to specify the root directory for the web app (-dir)")
@@ -82,12 +83,20 @@ func WebCommand() *commander.Command {
 				}
 			}
 
-			daphneSock := filepath.Join(wd, fmt.Sprintf(`daphne-%s.sock`, *app))
-			daphne, err := django.StartDaphne(python, daphneSock, *app)
-			defer daphne.Close()
+			unixSock := filepath.Join(wd, fmt.Sprintf(`pyserver-%s.sock`, *app))
+			var pyserver django.PyServer
+			if *daphne {
+				pyserver, err = django.StartDaphne(python, unixSock, *app)
+			} else {
+				pyserver, err = django.StartUvicorn(python, unixSock, *app)
+			}
+			if nil!=err {
+				return err
+			}
+			defer pyserver.Close()
 
-			http.Handle("/", daphne.ReverseProxy())
-			fmt.Println("Starting server on", *bind, ", proxy on", daphne.Url())
+			http.Handle("/", pyserver.ReverseProxy())
+			fmt.Println("Starting server on", *bind, ", proxy on", pyserver.Url())
 			return http.ListenAndServe(*bind, nil)
 		})
 }

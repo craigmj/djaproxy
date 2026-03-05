@@ -7,12 +7,19 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"text/template"
 
 	`djaproxy/python`
 )
+
+type PyServer interface {
+	Url() string
+	Close() error
+	ReverseProxy() *httputil.ReverseProxy
+}
 
 // UrlMap uses python and the settings.py to work out the mappings
 // of urls to directories
@@ -26,7 +33,7 @@ func UrlMap(python *python.Python, dir string, app string) (map[string]string, e
 
 	py := python.Command(nil)
 	py.Dir = dir
-	log.Printf(`Running urlmap command in %s`, py.Dir)
+	ilog.Printf(`Running urlmap command in %s`, py.Dir)
 	for _, e := range py.Env {
 		log.Printf("ENV: %s", e)
 	}
@@ -69,8 +76,22 @@ func HttpMapStatics(m map[string]string) {
 		if prefix[l-1] == '/' {
 			prefix = prefix[0 : l-1]
 		}
-		log.Printf("Handling %s (%s) to %s", u, prefix, root)
-		http.Handle(u, http.StripPrefix(prefix, http.FileServer(http.Dir(root))))
+		if prefix[0] != '/' {
+			prefix = `/` + prefix
+		}
+		if u[0]!='/' {
+			u = `/`+u
+		}
+		ilog.Printf("djaproxy handling %s (%s) to %s", u, prefix, root)
+		dirHandler := http.StripPrefix(prefix, http.FileServer(http.Dir(root)))
+		// http.Handle(`/` + u, dirHandler)
+		thisUrl, thisPrefix := u, prefix
+		http.HandleFunc(u, func(w http.ResponseWriter, r *http.Request) {
+			ilog.Printf("prefix %s for url %s statically serving %s", thisPrefix, thisUrl, r.URL.String())
+			defer ilog.Printf("finished statically serving %s", r.URL.String())
+			dirHandler.ServeHTTP(w,r)
+			// http.Error(w, `my error`, http.StatusInternalServerError)	
+		})
 	}
 }
 
