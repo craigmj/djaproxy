@@ -6,6 +6,8 @@ import (
 	`os/exec`
 	`path/filepath`
 	`text/template`
+
+	`djaproxy/python`
 )
 
 func getName(name string) string {
@@ -33,7 +35,7 @@ func SystemdServiceRestartEdit(serviceName, waitFor string) error {
 	return fmt.Errorf(`SystemdServiceRestartEdit not implemented: done with /lib/systemd/system/X.service.d/custom.conf file instead`)
 }
 
-func SystemdInstall(name, user, group, workingDir string, args []string) error {
+func SystemdInstall(name, user, group, workingDir string, envPairs string, args []string) error {
 	var err error
 	service := NewConfig(name)
 	if ``==workingDir || !filepath.IsAbs(workingDir) {
@@ -55,10 +57,16 @@ func SystemdInstall(name, user, group, workingDir string, args []string) error {
 	if nil!=err {
 		return fmt.Errorf(`Creating ServicePath() failed: %w`, err)
 	}
+	environmentVars, err := python.ParseEnvIntoSetStrings(envPairs)
+	if nil!=err {
+		return err
+	}
+
 	defer out.Close()
 	if err := _systemdService.Execute(out, map[string]interface{} {
 		"WorkingDirectory":workingDir,
 		"Executable": executable,
+		"Environment": environmentVars,
 		"Args":args,
 		"Name":service.Name,
 		"User":user,
@@ -110,6 +118,8 @@ WantedBy=multi-user.target
 [Service]
 Type=simple
 WorkingDirectory={{.WorkingDirectory}}
+{{range .Environment}}
+Environment="{{.}}"{{end}}
 {{with .User}}User={{.}}{{end}}
 {{with .Group}}Group={{.}}{{end}}
 ExecStart={{.Executable}} {{range .Args}}"{{.}}" {{end}}

@@ -12,11 +12,12 @@ func SystemdInstallCommand() *commander.Command {
 	user := fs.String(`user`,``,`User to run as`)
 	group := fs.String(`group`,``,`Group to run as`)
 	workingDir := fs.String(`dir`,``,`Working directory`)
+	env := fs.String(`env`, ``, `Environment vars to pass through in E=V pairs, , or ; delimited`)
 
 	return commander.NewCommand(`systemd-install`,
 		`Install djaproxy'd system as a systemctl service`,
 		fs,
 		func(args []string) error {
-			return SystemdInstall(*name, *user, *group, *workingDir, args)
+			return SystemdInstall(*name, *user, *group, *workingDir, *env, args)
 		})
 }

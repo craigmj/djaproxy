@@ -7,7 +7,7 @@ import (
 	// `io`
 	`os`
 	`os/exec`
-	// `strings`
+	`strings`
 	`path/filepath`
 	`text/template`
 )
@@ -79,25 +79,43 @@ func (p *Python) Install() error {
 	return nil
 }
 
-func (p *Python) Env() []string {
-	env := []string{}
-
-	for k, v := range map[string]string {
-		`PYTHONHOME`: p.Dir,
-		`PATH`: fmt.Sprintf(`%s:%s`, filepath.Join(p.Dir, `bin`), os.Getenv(`PATH`)),
-		// `PYTHONPATH`:``,
-	}{
-		env = append(env, fmt.Sprintf(`%s=%s`,k,v))
+func (p *Python) Env(pairs []string) []string {
+	pyenv := []string {
+		`PYTHONHOME=` + p.Dir,
+		`PATH=` + fmt.Sprintf(`%s:%s`, filepath.Join(p.Dir, `bin`), os.Getenv(`PATH`)),
 	}
-	return env
+	return MergeEnv(pyenv, pairs)
+}
+
+// MergeEnv merges two environments, preferring values from 
+// the first environment and preventing duplicates
+func MergeEnv(major, minor []string) []string {
+	out := make([]string, 0, len(major)+len(minor))
+	keys := map[string]bool{}
+	getKey := func(set string) string {
+		return strings.ToUpper(strings.TrimSpace(strings.Split(set,`=`)[0]))
+	}
+	for _, e := range(major) {
+		out = append(out, e)
+		keys[getKey(e)] = true
+	}
+	for _, e := range minor {
+		key := getKey(e)
+		if !keys[key] {
+			out = append(out,e)
+			keys[key]=true
+		}
+	}
+	return out
 }
 
 func (p *Python) Command(env []string, cmd ...string) *exec.Cmd {
 	if nil==env {
 		env = []string{}
 	}
+
 	py := exec.Command(filepath.Join(p.Dir, `bin`,`python3`), cmd...)
-	py.Env = append(p.Env(), env...)
+	py.Env = p.Env(env)
 	py.Stdout, py.Stderr =  os.Stdout, os.Stderr
 	py.Stdin = os.Stdin
 	return py

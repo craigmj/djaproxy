@@ -28,7 +28,7 @@ func StartDaphne(python *python.Python, sock string, app string) (*Daphne, error
 		return nil, fmt.Errorf(`Failed to parse URL to daphne '%s' : %w`, daphneUrl, err)
 	}
 	d := &Daphne{
-		Cmd: python.Command(nil, args...),
+		Cmd: python.Command(os.Environ(), args...),
 		url: daphneUrl,
 		reverseProxy: httputil.NewSingleHostReverseProxy(destUrl),
 	}

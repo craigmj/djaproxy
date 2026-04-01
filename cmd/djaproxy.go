@@ -30,6 +30,7 @@ func main() {
 		circus.InstallCommand,
 		systemd.SystemdInstallCommand,
 		python.PythonCommand,
+		python.EnvironmentCommand,
 	); nil != err {
 		log.Fatal(err)
 	}
@@ -41,6 +42,7 @@ func WebCommand() *commander.Command {
 	// dest := fs.String("dest", "http://localhost:8000", "Destination for reverse proxy - where django is running")
 	app := fs.String("app", "", "Name of the web app")
 	daphne := fs.Bool("daphne", false, "Use the daphne server (rather than uvicorn)")
+	// env := fs.String("env", "KEY=VALUE environment pairs for the installation")
 	wd, err := os.Getwd()
 	if nil!=err {
 		panic(err)

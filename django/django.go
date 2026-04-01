@@ -31,7 +31,7 @@ func UrlMap(python *python.Python, dir string, app string) (map[string]string, e
 		return nil, fmt.Errorf(`Failed parsing python template: %w`, err)
 	}
 
-	py := python.Command(nil)
+	py := python.Command(os.Environ())
 	py.Dir = dir
 	ilog.Printf(`Running urlmap command in %s`, py.Dir)
 	for _, e := range py.Env {
@@ -82,7 +82,7 @@ func HttpMapStatics(m map[string]string) {
 		if u[0]!='/' {
 			u = `/`+u
 		}
-		ilog.Printf("djaproxy handling %s (%s) to %s", u, prefix, root)
+		ilog.Printf("djaproxy handling URL %s (prefix = %s) to path %s", u, prefix, root)
 		dirHandler := http.StripPrefix(prefix, http.FileServer(http.Dir(root)))
 		// http.Handle(`/` + u, dirHandler)
 		thisUrl, thisPrefix := u, prefix

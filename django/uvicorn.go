@@ -8,7 +8,7 @@ import (
 	`net/http/httputil`
 	`net/url`
 	`net/http`
-
+	
 	`github.com/peterbourgon/unixtransport`
 
 	`djaproxy/python`
@@ -29,9 +29,18 @@ func StartUvicorn(python *python.Python, sock string, app string) (*Uvicorn, err
 		return nil, fmt.Errorf(`Failed to parse URL to uvicorn '%s' : %w`, uvicornUrl, err)
 	}
 	d := &Uvicorn{
-		Cmd: python.Command(nil, args...),
+		Cmd: python.Command(os.Environ(), args...),
 		url: uvicornUrl,
 		reverseProxy: httputil.NewSingleHostReverseProxy(destUrl),
+	}
+	origDirector := d.reverseProxy.Director
+	d.reverseProxy.Director = func(r *http.Request) {
+		origDirector(r)
+		ilog.Printf("Request for %s - remote-addr = %s, x-forwarded-for=%s", r.URL.String(), r.Header.Get(`Remote-Addr`), r.Header.Get(`X-Forwarded-For`))
+		// if r.Header.Get(`Remote-Addr`)==`` {
+		// 	r.Header.Add(`Remote-Addr`, strings.Split(r.Header.Get(`X-Forwarded-For`),  `, `)[0])
+		// }
+		// r.Header.Add(`x-djaproxy`, `v1`)
 	}
 	transport := &http.Transport{}
 	d.reverseProxy.Transport = transport
